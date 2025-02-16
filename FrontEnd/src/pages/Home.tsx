@@ -93,7 +93,7 @@ const App: React.FC = () => {
                     </div>
                 </section>
 
-                <section className='bg-white'>
+                <section className='bg-white' id='project'>
                     <div className='py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6'>
                         <div className='max-w-screen-md mb-8 lg:mb-6'>
                             <h2 className='mb-4 text-4xl tracking-tight font-extrabold text-sky-800'>
@@ -121,7 +121,7 @@ const App: React.FC = () => {
                     </div>
                 </section>
 
-                <section>
+                <section id='team'>
                     <div className='py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6'>
                         <div className='mx-auto max-w-screen-sm text-center mb-8 lg:mb-16'>
                             <h2 className='mb-4 text-4xl tracking-tight font-extrabold text-sky-800'>
