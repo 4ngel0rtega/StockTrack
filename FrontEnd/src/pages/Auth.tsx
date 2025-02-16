@@ -4,20 +4,6 @@ import axios from 'axios';
 import { z } from 'zod';
 import Navbar from "../components/Navbar";
 
-const schema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  email: z.string().email({ message: "Invalid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
-  passwordConfirmation: z.string().min(6, { message: "Password confirmation must be at least 6 characters long" }),
-}).superRefine((data, ctx) => {
-  if (data.password !== data.passwordConfirmation) {
-    ctx.addIssue({
-      path: ["passwordConfirmation"],
-      code: z.ZodIssueCode.custom,
-      message: "Passwords must match",
-    });
-  }
-});
 
 function Auth() {
   const [email, setEmail] = useState('');
@@ -28,38 +14,61 @@ function Auth() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string; passwordConfirmation?: string }>({});
   const navigate = useNavigate();
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    try {
-      schema.parse({ email, password, name, passwordConfirmation }); // Validación de todos los campos
-      if (isRegistering) {
-        // Registro de usuario
-        await axios.post('http://localhost:8000/api/register', { 
-          name, 
-          email, 
-          password, 
-          password_confirmation: passwordConfirmation // Enviar confirmación de contraseña
+const schema = z.object({
+    email: z.string().email({ message: "Invalid email address" }),
+    password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+    name: isRegistering ? z.string().min(1, { message: "Name is required" }) : z.string().optional(),
+    passwordConfirmation: isRegistering ? z.string().min(6, { message: "Password confirmation must be at least 6 characters long" }) : z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (isRegistering && data.password !== data.passwordConfirmation) {
+        ctx.addIssue({
+            path: ["passwordConfirmation"],
+            code: z.ZodIssueCode.custom,
+            message: "Passwords must match",
         });
-      } else {
-        // Inicio de sesión
-        const response = await axios.post('http://localhost:8000/api/login', { email, password });
-        localStorage.setItem('token', response.data.access_token);
-      }
-      navigate('/'); // Redirigir al inicio
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors = error.errors.reduce((acc, curr) => {
-          acc[curr.path[0] as keyof typeof acc] = curr.message;
-          return acc;
-        }, {} as { email?: string; password?: string; name?: string; passwordConfirmation?: string });
-        setErrors(fieldErrors);
-      } else if (axios.isAxiosError(error) && error.response) {
-        // Manejo de errores del servidor
-        setErrors({ email: error.response.data.message });
-      } else {
-        console.error('Error en la autenticación:', error);
-      }
     }
+});
+
+  const handleSubmit = async (event: React.FormEvent) => {
+      event.preventDefault();
+      try {
+          schema.parse({ email, password, name, passwordConfirmation });
+          
+          if (isRegistering) {
+              // Registro de usuario
+              const response = await axios.post('http://localhost:8000/api/register', { 
+                  name, 
+                  email, 
+                  password, 
+                  password_confirmation: passwordConfirmation 
+              });
+              localStorage.setItem('token', response.data.access_token);
+              alert('Usuario creado, inicia sesión');
+              setIsRegistering(false);
+              setEmail('');
+              setPassword('');
+              setName('');
+              setPasswordConfirmation('');
+          } else {
+              // Inicio de sesión
+              const response = await axios.post('http://localhost:8000/api/login', { email, password });
+              localStorage.setItem('token', response.data.access_token);
+              localStorage.setItem('user', JSON.stringify(response.data.user)); // Guardar el usuario
+              setEmail('');
+              setPassword('');
+              navigate('/'); // Redirigir después de iniciar sesión
+          }
+      } catch (error) {
+          if (axios.isAxiosError(error)) {
+              if (error.response) {
+                  setErrors({ email: error.response.data.message || 'Invalid credentials' });
+              } else {
+                  setErrors({ email: 'Network error, please try again' });
+              }
+          } else {
+              console.error('Unexpected error:', error);
+          }
+      }
   };
 
   return (
